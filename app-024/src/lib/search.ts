@@ -13,22 +13,44 @@ export interface RiddleFilters {
 
 export const EMPTY_FILTERS: RiddleFilters = { q: '', category: '', format: '', difficulty: 0, verdict: '', tag: '' };
 
+/**
+ * 拼接待检索文本并归一化（繁转简、去标点空白）。
+ * 覆盖：谜面 / 谜底 / 谜号 / 作者 / 出处 / 标签 / 备注
+ */
+function haystack(r: Riddle): string {
+  return normalizeText(
+    [
+      r.surface,
+      r.answer,
+      String(r.no),
+      r.author ?? '',
+      r.source ?? '',
+      r.note ?? '',
+      ...r.tags,
+    ].join('\n'),
+  );
+}
+
 export function filterRiddles(list: Riddle[], f: RiddleFilters): Riddle[] {
-  const q = f.q.trim().toLowerCase();
-  const qn = q ? normalizeText(f.q) : '';
+  const qn = f.q.trim() ? normalizeText(f.q) : '';
+  const tn = f.tag ? normalizeText(f.tag) : '';
   const out: Riddle[] = [];
   for (let i = 0; i < list.length; i++) {
     const r = list[i];
     if (f.category && r.category !== f.category) continue;
     if (f.difficulty && r.difficulty !== f.difficulty) continue;
-    if (f.format && r.format === f.format) continue;
-    if (f.tag && !r.tags.some((t) => normalizeText(t) === qn)) continue;
-    if (q && !r.surface.toLowerCase().includes(q)) continue;
+    if (f.format && r.format !== f.format) continue;
+    if (f.verdict && r.check.verdict !== f.verdict) continue;
+    if (tn && !r.tags.some((t) => normalizeText(t) === tn)) continue;
+    if (qn && !haystack(r).includes(qn)) continue;
     out.push(r);
   }
   return out;
 }
 
+/** 全库标签：去重 + 稳定排序（按拼音顺序，环境不支持时退化为码点序） */
 export function allTags(list: Riddle[]): string[] {
-  return list.map((r) => r.tags[0]).filter(Boolean);
+  const set = new Set<string>();
+  for (const r of list) for (const t of r.tags) { if (t) set.add(t); }
+  return [...set].sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
 }
