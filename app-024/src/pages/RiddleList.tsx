@@ -28,7 +28,11 @@ export function RiddleList() {
   const selected = state.selected;
   const selectedInAll = state.riddles.filter((r) => selected.has(r.id));
 
-  const setF = (patch: Partial<RiddleFilters>) => setFilters((f) => ({ ...f, ...patch }));
+  // 任何筛选条件变化都回到第一页，避免停留在空页
+  const setF = (patch: Partial<RiddleFilters>) => {
+    setPage(0);
+    setFilters((f) => ({ ...f, ...patch }));
+  };
 
   const doExport = () => {
     const list = selectedInAll.length ? selectedInAll : filtered;
@@ -105,7 +109,7 @@ export function RiddleList() {
       <div className="toolbar no-print">
         <input
           className="input search"
-          placeholder="搜索谜面 / 谜底 / 谜号 / 标签…"
+          placeholder="搜索谜面 / 谜底 / 谜号 / 作者 / 出处 / 标签…"
           value={filters.q}
           onChange={(e) => setF({ q: e.target.value })}
         />
